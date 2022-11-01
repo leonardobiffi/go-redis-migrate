@@ -1,11 +1,13 @@
 package pusher
 
 import (
-	"github.com/mediocregopher/radix/v3"
-	"github.com/obukhov/go-redis-migrate/src/reporter"
-	"github.com/obukhov/go-redis-migrate/src/scanner"
+	"context"
 	"log"
 	"sync"
+
+	"github.com/leonardobiffi/go-redis-migrate/src/reporter"
+	"github.com/leonardobiffi/go-redis-migrate/src/scanner"
+	"github.com/mediocregopher/radix/v4"
 )
 
 func NewRedisPusher(client radix.Client, dumpChannel <-chan scanner.KeyDump, reporter *reporter.Reporter) *RedisPusher {
@@ -31,9 +33,10 @@ func (p *RedisPusher) Start(wg *sync.WaitGroup, number int) {
 }
 
 func (p *RedisPusher) pushRoutine(wg *sync.WaitGroup) {
+	ctx := context.Background()
 	for dump := range p.dumpChannel {
 		p.reporter.AddPushedCounter(1)
-		err := p.client.Do(radix.FlatCmd(nil, "RESTORE", dump.Key, dump.Ttl, dump.Value, "REPLACE"))
+		err := p.client.Do(ctx, radix.FlatCmd(nil, "RESTORE", dump.Key, dump.Ttl, dump.Value, "REPLACE"))
 		if err != nil {
 			log.Fatal(err)
 		}

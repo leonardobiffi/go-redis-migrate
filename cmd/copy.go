@@ -1,15 +1,17 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"github.com/mediocregopher/radix/v3"
-	"github.com/obukhov/go-redis-migrate/src/pusher"
-	"github.com/obukhov/go-redis-migrate/src/reporter"
-	"github.com/obukhov/go-redis-migrate/src/scanner"
-	"github.com/spf13/cobra"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/leonardobiffi/go-redis-migrate/src/pusher"
+	"github.com/leonardobiffi/go-redis-migrate/src/reporter"
+	"github.com/leonardobiffi/go-redis-migrate/src/scanner"
+	"github.com/mediocregopher/radix/v4"
+	"github.com/spf13/cobra"
 )
 
 var pattern string
@@ -23,12 +25,12 @@ var copyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Start copying")
 
-		clientSource, err := radix.DefaultClientFunc("tcp", args[0])
+		clientSource, err := (radix.PoolConfig{}).New(context.Background(), "tcp", args[0])
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		clientTarget, err := radix.DefaultClientFunc("tcp", args[1])
+		clientTarget, err := (radix.PoolConfig{}).New(context.Background(), "tcp", args[1])
 		if err != nil {
 			log.Fatal(err)
 		}

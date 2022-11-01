@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/mediocregopher/radix/v3"
 	"log"
 	"math/rand"
 	"strconv"
 	"time"
+
+	"github.com/mediocregopher/radix/v4"
 
 	"github.com/spf13/cobra"
 )
@@ -22,6 +24,7 @@ var fillCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Filling redis with random data")
+		ctx := context.Background()
 
 		randomMap, err := createRandomMap(prefix, count)
 		if err != nil {
@@ -30,7 +33,7 @@ var fillCmd = &cobra.Command{
 
 		fmt.Println("Random map: ", randomMap)
 
-		pool, err := radix.NewPool("tcp", args[0], 10)
+		pool, err := (radix.PoolConfig{Size: 10}).New(ctx, "tcp", args[0])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -41,7 +44,7 @@ var fillCmd = &cobra.Command{
 			for prefix, number := range randomMap {
 				for i := 0; i < number; i++ {
 					randVal := strconv.Itoa(rand.Int())
-					err = pool.Do(radix.Cmd(nil, "SET", prefix+randVal, randVal))
+					err = pool.Do(ctx, radix.Cmd(nil, "SET", prefix+randVal, randVal))
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -81,5 +84,4 @@ func init() {
 	fillCmd.Flags().StringArrayVar(&prefix, "prefix", []string{"foobar:"}, "Prefixes to fill")
 	fillCmd.Flags().StringArrayVar(&count, "count", []string{"1"}, "Count of keys to create for prefix in one cycle")
 	fillCmd.Flags().IntVar(&cycles, "cycles", 1, "Cycles count to perform")
-
 }

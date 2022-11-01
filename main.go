@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/obukhov/go-redis-migrate/cmd"
+import "github.com/leonardobiffi/go-redis-migrate/cmd"
 
 func main() {
 	cmd.Execute()

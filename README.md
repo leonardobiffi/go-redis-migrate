@@ -21,7 +21,7 @@ Other flags:
 
 ### Installation
 
-Download the binary for your platform from the [releases page](https://github.com/obukhov/go-redis-migrate/releases).
+Download the binary for your platform from the [releases page](https://github.com/leonardobiffi/go-redis-migrate/releases).
 
 ### General idea
 

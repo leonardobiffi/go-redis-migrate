@@ -1,10 +1,12 @@
 package scanner
 
 import (
-	"github.com/mediocregopher/radix/v3"
-	"github.com/obukhov/go-redis-migrate/src/reporter"
+	"context"
 	"log"
 	"sync"
+
+	"github.com/leonardobiffi/go-redis-migrate/src/reporter"
+	"github.com/mediocregopher/radix/v4"
 )
 
 type KeyDump struct {
@@ -56,17 +58,13 @@ func (s *RedisScanner) GetDumpChannel() <-chan KeyDump {
 
 func (s *RedisScanner) scanRoutine() {
 	var key string
-	scanOpts := radix.ScanOpts{
-		Command: "SCAN",
-		Count:   s.options.ScanCount,
-	}
+	ctx := context.Background()
 
-	if s.options.Pattern != "*" {
-		scanOpts.Pattern = s.options.Pattern
-	}
+	radixScanner := (radix.ScannerConfig{
+		Command: "SCAN", Count: s.options.ScanCount, Pattern: s.options.Pattern,
+	}).New(s.client)
 
-	radixScanner := radix.NewScanner(s.client, scanOpts)
-	for radixScanner.Next(&key) {
+	for radixScanner.Next(ctx, &key) {
 		s.reporter.AddScannedCounter(1)
 		s.keyChannel <- key
 	}
@@ -75,16 +73,16 @@ func (s *RedisScanner) scanRoutine() {
 }
 
 func (s *RedisScanner) exportRoutine(wg *sync.WaitGroup) {
+	ctx := context.Background()
 	for key := range s.keyChannel {
 		var value string
 		var ttl int
 
-		p := radix.Pipeline(
-			radix.Cmd(&ttl, "PTTL", key),
-			radix.Cmd(&value, "DUMP", key),
-		)
+		p := radix.NewPipeline()
+		p.Append(radix.Cmd(&ttl, "PTTL", key))
+		p.Append(radix.Cmd(&value, "DUMP", key))
 
-		if err := s.client.Do(p); err != nil {
+		if err := s.client.Do(ctx, p); err != nil {
 			log.Fatal(err)
 		}
 
